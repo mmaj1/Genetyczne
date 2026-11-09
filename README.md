@@ -32,6 +32,10 @@ python -m venv .venv
 | R / „Losuj punkty” | losuje tyle punktów, ile ustawiono suwakiem |
 | C / „Wyczyść” | zostawia samo mrowisko |
 | B / „Blokowanie” | w tym trybie kliknięcie odcinka blokuje lub odblokowuje ścieżkę |
+| I / „Wzory (I)” | panel: grupa algorytmu, użyty wariant, wzory i bieżące parametry |
+| W / „Wybór (W)” | kliknięcie punktu pokazuje prawdopodobieństwa wyboru kolejnego punktu (wzór p_ij na żywo) |
+| K / „Kroki (K)” | w trybie wyboru: najbardziej prawdopodobna trasa mrówki krok po kroku (1., 2., 3., …) z szansą każdego kroku, drugą opcją i szansą całej trasy |
+| A / „Mrówki (A)” | animacja mrówek przechodzących swoje trasy; feromon zmienia się po powrocie wszystkich |
 | F11 | przełącza pełny ekran i okno |
 | Esc | zamyka aplikację |
 | P / „Porównaj algorytmy” | liczy trasę ACO, najbliższym sąsiadem, 2-opt i przeglądem zupełnym (do 10 punktów); kliknięcie wiersza tabeli pokazuje trasę |
@@ -45,5 +49,10 @@ Suwaki zmieniają parametry algorytmu w trakcie działania: liczbę mrówek, α 
 - `algorytmy.py` – algorytm mrówkowy, przegląd zupełny, najbliższy sąsiad, 2-opt
 - `aplikacja.py` – interfejs w pygame
 - `porownanie.py` – eksperymenty, tabele CSV i wykresy
-- `dokumentacja/` – dokumentacja projektu (Word) i rysunki
-- `wyniki/` – wyniki eksperymentów
+- `dokumentacja/` – dokumentacja (`Dokumentacja_ACO_TSP.docx` + PDF), prezentacja (`Prezentacja_ACO_TSP.pptx` + PDF) i rysunki
+- `dokumentacja/narzedzia/` – skrypty generujące: `zrzuty.py` (zrzuty ekranu), `wzory.py` (wzory),
+  `dokumentacja.js` i `prezentacja.js` (wymagają Node.js i pakietów `docx` / `pptxgenjs`)
+- `wyniki/` – wyniki eksperymentów  
+
+## Zmiany najważniejsze  
+Aplikacja pokazuje teraz, jak mrówki podejmują decyzje: po kliknięciu punktu widać, z jakim prawdopodobieństwem mrówka pójdzie do każdego kolejnego punktu, a przycisk „Kroki” rozpisuje całą najbardziej prawdopodobną trasę krok po kroku (1., 2., 3., …) z szansą każdego ruchu. Doszedł też panel ze wzorami algorytmu i bieżącymi parametrami oraz animacja mrówek chodzących po planszy, w której feromon zmienia się dopiero, gdy wszystkie mrówki wrócą do mrowiska.

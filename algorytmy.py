@@ -139,7 +139,15 @@ def two_opt(dist, tour=None):
 # ---------------------------------------------------------------------------
 
 class AntColony:
-    """Algorytm mrówkowy (Ant System) dla problemu komiwojażera.
+    """Algorytm mrówkowy dla problemu komiwojażera.
+
+    Klasyfikacja: algorytmy inspirowane naturą -> inteligencja roju ->
+    optymalizacja kolonią mrówek (ACO) -> Ant System ze strategią elitarną
+    (Elitist Ant System, Dorigo i in. 1996).
+
+    Reguła wyboru:  p_ij = tau_ij^alpha * eta_ij^beta / suma_l tau_il^alpha * eta_il^beta,
+                    eta_ij = 1 / d_ij
+    Aktualizacja:   tau_ij <- (1 - rho) * tau_ij + suma_k Q / L_k + e * Q / L_best
 
     Parametry:
         alpha    - waga feromonu w regule wyboru,
@@ -166,6 +174,7 @@ class AntColony:
         self.history = []  # najlepsza długość po każdej iteracji
         self.best_tour = None
         self.best_length = math.inf
+        self.last_tours = []  # trasy mrówek z ostatniej iteracji
         self.set_distances(dist, reset_pheromone=True)
 
     def set_distances(self, dist, reset_pheromone=False):
@@ -211,15 +220,35 @@ class AntColony:
             current = nxt
         return tour
 
+    def probabilities(self, current, visited=()):
+        """Prawdopodobieństwo wyboru każdego punktu przez mrówkę stojącą w `current`.
+
+        Dokładnie reguła wyboru z budowy trasy:
+            p(j) = tau[i,j]^alpha * eta[i,j]^beta / suma po nieodwiedzonych l.
+        visited - punkty już odwiedzone (mają prawdopodobieństwo 0).
+        """
+        w = (self.tau[current] ** self.alpha) * (self.eta[current] ** self.beta)
+        w[[current, *visited]] = 0.0
+        total = w.sum()
+        return w / total if total > 0 else w
+
+    def construct_tours(self):
+        """Etap 1 iteracji: każda mrówka buduje trasę (feromon się nie zmienia)."""
+        weights = (self.tau ** self.alpha) * (self.eta ** self.beta)
+        return [self._construct_tour(weights) for _ in range(self.n_ants)]
+
     def iterate(self):
         """Wykonuje jedną iterację: budowa tras, parowanie, odkładanie feromonu."""
         n = len(self.dist)
         if n < 2:
             self.best_tour, self.best_length = list(range(n)), 0.0
             return self.best_tour
-        weights = (self.tau ** self.alpha) * (self.eta ** self.beta)
-        tours = [self._construct_tour(weights) for _ in range(self.n_ants)]
+        return self.update_pheromone(self.construct_tours())
+
+    def update_pheromone(self, tours):
+        """Etap 2 iteracji: parowanie, odkładanie feromonu, wzmocnienie najlepszej trasy."""
         lengths = [tour_length(t, self.dist) for t in tours]
+        self.last_tours = tours
 
         k = int(np.argmin(lengths))
         if lengths[k] < self.best_length:
