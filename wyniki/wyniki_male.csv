@@ -1,0 +1,33 @@
+punkty;algorytm;nadwyzka_dlugosci_%;czas_ms
+3;ACO;0.00;79.358
+3;Najbliższy sąsiad;1.19;0.011
+3;2-opt;0.00;0.014
+3;Przegląd zupełny;0.00;0.010
+4;ACO;0.00;90.758
+4;Najbliższy sąsiad;3.44;0.010
+4;2-opt;0.00;0.014
+4;Przegląd zupełny;0.00;0.018
+5;ACO;0.00;105.397
+5;Najbliższy sąsiad;7.43;0.012
+5;2-opt;0.70;0.020
+5;Przegląd zupełny;0.00;0.072
+6;ACO;0.20;119.454
+6;Najbliższy sąsiad;9.17;0.013
+6;2-opt;0.58;0.033
+6;Przegląd zupełny;0.00;0.409
+7;ACO;0.45;133.479
+7;Najbliższy sąsiad;5.60;0.016
+7;2-opt;0.00;0.037
+7;Przegląd zupełny;0.00;3.309
+8;ACO;0.38;147.703
+8;Najbliższy sąsiad;7.59;0.018
+8;2-opt;0.65;0.048
+8;Przegląd zupełny;0.00;24.802
+9;ACO;0.08;162.236
+9;Najbliższy sąsiad;10.34;0.018
+9;2-opt;0.89;0.065
+9;Przegląd zupełny;0.00;233.152
+10;ACO;0.58;173.601
+10;Najbliższy sąsiad;11.42;0.020
+10;2-opt;0.58;0.085
+10;Przegląd zupełny;0.00;2348.358

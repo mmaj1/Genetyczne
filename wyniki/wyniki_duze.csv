@@ -1,0 +1,19 @@
+punkty;algorytm;nadwyzka_dlugosci_%;czas_ms
+10;ACO;0.00;174.161
+10;Najbliższy sąsiad;6.62;0.020
+10;2-opt;2.22;0.081
+20;ACO;4.29;309.734
+20;Najbliższy sąsiad;15.26;0.046
+20;2-opt;2.18;0.262
+30;ACO;0.00;448.977
+30;Najbliższy sąsiad;19.35;0.085
+30;2-opt;2.38;0.713
+50;ACO;1.85;739.477
+50;Najbliższy sąsiad;17.65;0.207
+50;2-opt;0.63;2.212
+75;ACO;0.22;1107.850
+75;Najbliższy sąsiad;19.13;0.452
+75;2-opt;0.84;5.391
+100;ACO;2.44;1491.193
+100;Najbliższy sąsiad;24.07;0.763
+100;2-opt;1.12;9.541

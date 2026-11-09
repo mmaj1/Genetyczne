@@ -1,0 +1,25 @@
+OPIS PROJEKTU -- Algorytmy inteligentne inspirowane naturą
+
+Temat:
+Zastosowanie algorytmu mrówkowego (Ant Colony Optimization, ACO) do rozwiązania problemu komiwojażera (TSP)
+
+1. Opis projektu
+Na planszy znajduje się mrowisko oraz punkty z pożywieniem. Zadaniem jest wyznaczenie najkrótszej trasy, która zaczyna się w mrowisku, odwiedza każdy punkt z pożywieniem dokładnie raz i wraca do mrowiska.
+Do jego rozwiązania zostanie użyty algorytm mrówkowy (ACO), należący do algorytmów inteligencji roju. Mrówki budują trasy, wybierając kolejne punkty z prawdopodobieństwem zależnym od odległości oraz ilości feromonu na danej ścieżce. Po każdym przejściu mrówki zostawiają feromon na swojej trasie - im krótsza trasa, tym więcej feromonu. Feromony zanikają w czasie (parują), dzięki czemu gorsze ścieżki są stopniowo porzucane, a kolonia z każdą iteracją znajduje coraz krótszą trasę.
+
+
+2. Porównanie z innymi algorytmami
+ACO zostanie porównany z:
+  - przeglądem zupełnym (brute force) - algorytm dokładny, wyznacza trasę optymalną; stosowany tylko dla małej liczby punktów,
+  - algorytmem najbliższego sąsiada - prosta heurystyka zachłanna,
+  - algorytmem 2-opt.
+
+Porównany zostanie czas wyznaczania trasy oraz długość znalezionej trasy dla coraz większej liczby punktów do odwiedzenia. Wyniki zostaną przedstawione na wykresach. Opcjonalnym rozszerzeniem będzie zbadanie, jak szybko algorytm wyznacza nową trasę po zablokowaniu jednej ze ścieżek.
+
+
+3. Wizualizacja
+Działanie algorytmu będzie pokazane na planszy: mrowisko, punkty z pożywieniem, ścieżki rysowane zależnie od ilości feromonu oraz wyróżniona najlepsza znaleziona trasa.
+
+
+4. Technologie
+  Python 3 i Pygame

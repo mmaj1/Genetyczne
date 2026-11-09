@@ -1,0 +1,6 @@
+wariant;dlugosc_koncowa;nadwyzka_wzgl_2opt_%
+α=1, β=3, ρ=0,3 (domyślne);510.57;-1.95
+α=1, β=0 (bez odległości);1053.29;102.27
+α=0, β=3 (bez feromonu);580.68;11.51
+α=1, β=3, ρ=0,05 (wolne parowanie);510.34;-2.00
+α=1, β=3, ρ=0,8 (szybkie parowanie);517.82;-0.56
