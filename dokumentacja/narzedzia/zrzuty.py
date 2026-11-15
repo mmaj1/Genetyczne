@@ -21,7 +21,8 @@ screen = pygame.display.set_mode((ap.WIDTH, ap.HEIGHT))
 random.seed(7)
 np.random.seed(7)
 app = ap.App(screen)
-app.colony.rng = np.random.default_rng(7)
+app.animate_ants = False
+app.session.colony.rng = np.random.default_rng(7)
 out = os.path.join(proj, "dokumentacja", "obrazy")
 
 
@@ -45,13 +46,13 @@ shot("gui_iter3.png", "Iteracja 3 - feromon jest jeszcze rozproszony.")
 
 # Animacja mrówek w trakcie iteracji 4.
 app.toggle_ants()
-app.running = True
+app.session.running = True
 for _ in range(150):
     app.update()
 shot("gui_mrowki.png", "Animacja: mrówki przechodzą swoje trasy w iteracji 4.")
 for _ in range(400):
     app.update()
-app.running = False
+app.session.running = False
 app.toggle_ants()
 
 # Tryb W po kilku iteracjach: feromon zaczyna przeważać nad samą odległością.
@@ -64,7 +65,7 @@ shot("gui_kroki.png", "Kroki: najbardziej prawdopodobna trasa mrówki i szansa k
 app.toggle_chain()
 app.toggle_prob_mode()
 
-app._iterate(92)
+app._iterate(max(0, 100 - app.session.colony.iteration))
 shot("gui_iter100.png", "Iteracja 100 - kolonia skupiła się na krótkiej trasie.")
 
 app.show_info = True
@@ -72,7 +73,7 @@ shot("gui_wzory.png", "")
 app.show_info = False
 
 # Blokada odcinka najlepszej trasy.
-e = sorted(alg.tour_edges(app.colony.best_tour))[3]
+e = sorted(alg.tour_edges(app.session.colony.best_tour))[3]
 app.block_mode = True
 app.toggle_block(e)
 for _ in range(200):
@@ -90,12 +91,12 @@ shot("gui_porownanie.png")
 print({k: (v[1], v[2]) if isinstance(v, tuple) else v for k, v in app.compare.items()})
 
 # Test zdarzeń myszy: dodawanie, usuwanie, przyciski, suwak.
-n = len(app.points)
-app.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(100, 100), button=1))
-assert len(app.points) == n + 1
-app.handle(pygame.event.Event(pygame.MOUSEBUTTONUP, pos=(100, 100), button=1))
-app.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(100, 100), button=3))
-assert len(app.points) == n
+n = len(app.session.points)
+app.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(150, 250), button=1))
+assert len(app.session.points) == n + 1
+app.handle(pygame.event.Event(pygame.MOUSEBUTTONUP, pos=(150, 250), button=1))
+app.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(150, 250), button=3))
+assert len(app.session.points) == n
 for key in (pygame.K_i, pygame.K_w, pygame.K_a, pygame.K_i, pygame.K_w, pygame.K_a):
     app.handle(pygame.event.Event(pygame.KEYDOWN, key=key))
 for b in app.buttons:
