@@ -72,5 +72,3 @@ class Slider:
 
     def handle_up(self):
         self.dragging = False
-
-

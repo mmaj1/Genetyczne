@@ -267,4 +267,3 @@ class ExplanationRenderer:
                     img = pygame.transform.smoothscale(img, (w - 48, img.get_height()))
                 self.screen.blit(img, (x0 + 24, y))
             y += height(item)
-
