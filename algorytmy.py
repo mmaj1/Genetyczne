@@ -12,14 +12,15 @@ Zawartość:
     - algorytm mrówkowy (Ant System z wzmocnieniem najlepszej trasy).
 """
 
+from dataclasses import dataclass
+
 import itertools
 import math
 import time
 
 import numpy as np
 
-# Długość "zablokowanej" krawędzi. Jest tak duża, że każdy algorytm jej unika,
-# a jednocześnie skończona, więc obliczenia nie dają nieskończoności.
+# Znacznik zablokowanej krawędzi; kolonia jawnie wyklucza ją z wyboru.
 BLOCKED_PENALTY = 1e6
 
 # Przegląd zupełny powyżej tej liczby punktów pożywienia trwałby zbyt długo.
@@ -41,7 +42,10 @@ def distance_matrix(points, blocked=()):
 
 def tour_length(tour, dist):
     """Długość zamkniętej trasy (z powrotem do punktu startowego)."""
-    return sum(dist[tour[k], tour[(k + 1) % len(tour)]] for k in range(len(tour)))
+    if not tour:
+        return math.inf
+    lengths = [dist[tour[k], tour[(k + 1) % len(tour)]] for k in range(len(tour))]
+    return math.inf if any(d >= BLOCKED_PENALTY for d in lengths) else sum(lengths)
 
 
 def tour_edges(tour):
@@ -53,6 +57,22 @@ def uses_blocked(tour, blocked):
     """Czy trasa przechodzi przez którąś z zablokowanych ścieżek."""
     blocked_set = {tuple(sorted(e)) for e in blocked}
     return bool(tour_edges(tour) & blocked_set)
+
+
+@dataclass(frozen=True)
+class Decision:
+    """Wylosowany ruch i rozkład szans w momencie podjęcia decyzji."""
+    source: int
+    destination: int
+    probabilities: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class Journey:
+    """Ślad jednej mrówki; niepełna podróż oznacza utknięcie na blokadach."""
+    tour: tuple[int, ...]
+    decisions: tuple[Decision, ...]
+    complete: bool
 
 
 # ---------------------------------------------------------------------------
@@ -69,13 +89,18 @@ def brute_force(dist):
     """
     n = len(dist)
     if n <= 3:
-        return list(range(n))
+        tour = list(range(n))
+        return tour if math.isfinite(tour_length(tour, dist)) else None
     best_tour, best_len = None, math.inf
     for perm in itertools.permutations(range(1, n)):
         if perm[0] > perm[-1]:
             continue
+        if dist[0, perm[0]] >= BLOCKED_PENALTY or dist[perm[-1], 0] >= BLOCKED_PENALTY:
+            continue
         length = dist[0, perm[0]] + dist[perm[-1], 0]
         for a, b in zip(perm, perm[1:]):
+            if dist[a, b] >= BLOCKED_PENALTY:
+                break
             length += dist[a, b]
             if length >= best_len:
                 break
@@ -88,27 +113,40 @@ def brute_force(dist):
 # Najbliższy sąsiad
 # ---------------------------------------------------------------------------
 
-def nearest_neighbor(dist, start=0):
+def greedy_tour_steps(dist, start=0):
     """Heurystyka zachłanna: zawsze idź do najbliższego nieodwiedzonego punktu.
 
     Złożoność: O(n^2).
     """
     n = len(dist)
     tour = [start]
+    yield list(tour)
     unvisited = set(range(n)) - {start}
     while unvisited:
         last = tour[-1]
         nxt = min(unvisited, key=lambda j: dist[last, j])
         tour.append(nxt)
         unvisited.remove(nxt)
+        yield list(tour)
+
+
+def _greedy_tour(dist, start=0):
+    for tour in greedy_tour_steps(dist, start):
+        pass
     return tour
+
+
+def nearest_neighbor(dist, start=0):
+    """Najbliższy sąsiad; None, jeżeli zachłanna trasa wpada na blokadę."""
+    tour = _greedy_tour(dist, start)
+    return tour if math.isfinite(tour_length(tour, dist)) else None
 
 
 # ---------------------------------------------------------------------------
 # 2-opt
 # ---------------------------------------------------------------------------
 
-def two_opt(dist, tour=None):
+def two_opt_steps(dist, tour=None):
     """Lokalne ulepszanie trasy: usuwa dwie krawędzie i łączy trasę na nowo.
 
     Jeśli zamiana krawędzi (a-b, c-d) na (a-c, b-d) skraca trasę, odwracamy
@@ -116,9 +154,10 @@ def two_opt(dist, tour=None):
     Trasą startową jest wynik algorytmu najbliższego sąsiada.
     """
     n = len(dist)
-    tour = list(tour) if tour is not None else nearest_neighbor(dist)
+    tour = list(tour) if tour is not None else _greedy_tour(dist)
+    yield list(tour)
     if n < 4:
-        return tour
+        return
     improved = True
     while improved:
         improved = False
@@ -131,7 +170,14 @@ def two_opt(dist, tour=None):
                     tour[i:j + 1] = reversed(tour[i:j + 1])
                     b = tour[i]
                     improved = True
-    return tour
+                    yield list(tour)
+
+
+def two_opt(dist, tour=None):
+    """Końcowy wynik 2-opt; None, jeżeli nie uzyskano dopuszczalnej trasy."""
+    for candidate in two_opt_steps(dist, tour):
+        pass
+    return candidate if math.isfinite(tour_length(candidate, dist)) else None
 
 
 # ---------------------------------------------------------------------------
@@ -189,36 +235,53 @@ class AntColony:
             self.eta = np.where(self.dist > 0, 1.0 / self.dist, 0.0)
         if reset_pheromone or not hasattr(self, "tau") or self.tau.shape != (n, n):
             # Początkowy feromon: odwrotność długości trasy najbliższego sąsiada.
-            nn_len = tour_length(nearest_neighbor(self.dist), self.dist)
-            self.tau0 = 1.0 / (n * nn_len) if n > 1 else 1.0
+            nn_len = tour_length(_greedy_tour(self.dist), self.dist)
+            if not math.isfinite(nn_len):
+                legal = self.dist[(self.dist > 0) & (self.dist < BLOCKED_PENALTY)]
+                nn_len = n * float(legal.mean()) if legal.size else 1.0
+            self.tau0 = 1.0 / max(n * nn_len, 1e-12) if n > 1 else 1.0
             self.tau = np.full((n, n), self.tau0)
         if self.best_tour is not None:
             # Najlepsza trasa mogła stracić ważność, więc liczymy ją od nowa.
             self.best_length = tour_length(self.best_tour, self.dist)
+            if any(self.dist[a, b] >= BLOCKED_PENALTY for a, b in tour_edges(self.best_tour)):
+                self.best_tour, self.best_length = None, math.inf
 
-    def _construct_tour(self, weights):
-        n = len(self.dist)
-        tour = [0]
-        visited = np.zeros(n, dtype=bool)
-        visited[0] = True
-        current = 0
-        for _ in range(n - 1):
-            w = weights[current] * ~visited
-            total = w.sum()
-            if total <= 0:
-                # Wszystkie wagi zerowe - wybór losowy spośród nieodwiedzonych.
-                choices = np.flatnonzero(~visited)
-                nxt = int(self.rng.choice(choices))
-            else:
-                # Reguła ruletki: p(j) = w(j) / suma w
-                nxt = int(np.searchsorted(np.cumsum(w), self.rng.random() * total))
-                nxt = min(nxt, n - 1)
-                if visited[nxt]:
-                    nxt = int(np.flatnonzero(~visited)[0])
+    def _weights(self):
+        weights = (self.tau ** self.alpha) * (self.eta ** self.beta)
+        weights[self.dist >= BLOCKED_PENALTY] = 0.0
+        np.fill_diagonal(weights, 0.0)
+        return weights
+
+    def _probabilities(self, current, visited, weights):
+        available = self.dist[current] < BLOCKED_PENALTY
+        available = available.copy()
+        available[[current, *visited]] = False
+        w = np.where(available, weights[current], 0.0)
+        total = w.sum()
+        if total > 0:
+            return w / total
+        # Gdy wagi zanikną, losujemy tylko spośród dostępnych połączeń.
+        count = available.sum()
+        return available.astype(float) / count if count else np.zeros(len(w))
+
+    def _construct_journey(self, weights, record=True):
+        tour, decisions = [0], []
+        for _ in range(len(self.dist) - 1):
+            current = tour[-1]
+            p = self._probabilities(current, tour, weights)
+            if not p.any():
+                return Journey(tuple(tour), tuple(decisions), False)
+            nxt = int(np.searchsorted(np.cumsum(p), self.rng.random(), side="right"))
+            if nxt >= len(p) or p[nxt] == 0:
+                nxt = int(np.flatnonzero(p)[-1])
+            if record:
+                decisions.append(Decision(current, nxt, tuple(float(v) for v in p)))
             tour.append(nxt)
-            visited[nxt] = True
-            current = nxt
-        return tour
+        complete = self.dist[tour[-1], 0] < BLOCKED_PENALTY
+        if complete and record:
+            decisions.append(Decision(tour[-1], 0, (1.0,) + (0.0,) * (len(self.dist) - 1)))
+        return Journey(tuple(tour), tuple(decisions), complete)
 
     def probabilities(self, current, visited=()):
         """Prawdopodobieństwo wyboru każdego punktu przez mrówkę stojącą w `current`.
@@ -227,15 +290,18 @@ class AntColony:
             p(j) = tau[i,j]^alpha * eta[i,j]^beta / suma po nieodwiedzonych l.
         visited - punkty już odwiedzone (mają prawdopodobieństwo 0).
         """
-        w = (self.tau[current] ** self.alpha) * (self.eta[current] ** self.beta)
-        w[[current, *visited]] = 0.0
-        total = w.sum()
-        return w / total if total > 0 else w
+        return self._probabilities(current, visited, self._weights())
+
+    def construct_journeys(self):
+        """Buduje podróże z niezmiennym zapisem rzeczywistych wyborów mrówek."""
+        weights = self._weights()
+        return [self._construct_journey(weights) for _ in range(self.n_ants)]
 
     def construct_tours(self):
-        """Etap 1 iteracji: każda mrówka buduje trasę (feromon się nie zmienia)."""
-        weights = (self.tau ** self.alpha) * (self.eta ** self.beta)
-        return [self._construct_tour(weights) for _ in range(self.n_ants)]
+        """Buduje trasy bez zapisu objaśnień (szybka ścieżka eksperymentów)."""
+        weights = self._weights()
+        journeys = [self._construct_journey(weights, record=False) for _ in range(self.n_ants)]
+        return [list(j.tour) for j in journeys if j.complete]
 
     def iterate(self):
         """Wykonuje jedną iterację: budowa tras, parowanie, odkładanie feromonu."""
@@ -247,21 +313,24 @@ class AntColony:
 
     def update_pheromone(self, tours):
         """Etap 2 iteracji: parowanie, odkładanie feromonu, wzmocnienie najlepszej trasy."""
+        tours = [t for t in tours if len(t) == len(self.dist)
+                 and all(self.dist[a, b] < BLOCKED_PENALTY for a, b in tour_edges(t))]
         lengths = [tour_length(t, self.dist) for t in tours]
         self.last_tours = tours
 
-        k = int(np.argmin(lengths))
-        if lengths[k] < self.best_length:
-            self.best_length, self.best_tour = lengths[k], tours[k]
+        if lengths:
+            k = int(np.argmin(lengths))
+            if lengths[k] < self.best_length:
+                self.best_length, self.best_tour = lengths[k], tours[k]
 
         # Parowanie feromonu
         self.tau *= (1.0 - self.rho)
         # Każda mrówka zostawia feromon odwrotnie proporcjonalny do długości trasy
         for t, length in zip(tours, lengths):
-            self._deposit(t, self.q / length)
+            self._deposit(t, self.q / max(length, 1e-12))
         # Wzmocnienie najlepszej dotąd trasy (strategia elitarna)
         if self.elite > 0 and self.best_tour is not None:
-            self._deposit(self.best_tour, self.elite * self.q / self.best_length)
+            self._deposit(self.best_tour, self.elite * self.q / max(self.best_length, 1e-12))
         # Dolne ograniczenie, żeby żadna ścieżka nie zniknęła zupełnie
         np.maximum(self.tau, self.tau0 * 1e-3, out=self.tau)
 
